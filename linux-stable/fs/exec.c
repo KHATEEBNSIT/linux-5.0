@@ -1581,7 +1581,7 @@ int prepare_binprm(struct linux_binprm *bprm)
 	bprm->called_set_creds = 1;
 
 	memset(bprm->buf, 0, BINPRM_BUF_SIZE);
-	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);
+	return kernel_read(bprm->file, bprm->buf, BINPRM_BUF_SIZE, &pos);	//  读取可执行文件内容到bprm的buf缓存中
 }
 
 EXPORT_SYMBOL(prepare_binprm);
@@ -1695,7 +1695,7 @@ static int exec_binprm(struct linux_binprm *bprm)
 	old_vpid = task_pid_nr_ns(current, task_active_pid_ns(current->parent));
 	rcu_read_unlock();
 
-	ret = search_binary_handler(bprm);
+	ret = search_binary_handler(bprm);	//  遍历format格式，选择对应的可执行文件加载器
 	if (ret >= 0) {
 		audit_bprm(bprm);
 		trace_sched_process_exec(current, old_pid, bprm);
@@ -1729,7 +1729,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 	 * whether NPROC limit is still exceeded.
 	 */
 	if ((current->flags & PF_NPROC_EXCEEDED) &&
-	    atomic_read(&current_user()->processes) > rlimit(RLIMIT_NPROC)) {
+	    atomic_read(&current_user()->processes) > rlimit(RLIMIT_NPROC)) {	// 验证当前用户的进程数是否超过限制
 		retval = -EAGAIN;
 		goto out_ret;
 	}
@@ -1743,11 +1743,11 @@ static int __do_execve_file(int fd, struct filename *filename,
 		goto out_ret;
 
 	retval = -ENOMEM;
-	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
+	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);	// 分配linux_binprm结构内存空间，后面对结构进行初始化
 	if (!bprm)
 		goto out_files;
 
-	retval = prepare_bprm_creds(bprm);
+	retval = prepare_bprm_creds(bprm);	// 从当前进程复制一份cred结构，封装了进程的安全信息
 	if (retval)
 		goto out_free;
 
@@ -1755,12 +1755,12 @@ static int __do_execve_file(int fd, struct filename *filename,
 	current->in_execve = 1;
 
 	if (!file)
-		file = do_open_execat(fd, filename, flags);
+		file = do_open_execat(fd, filename, flags);	// 打开文件，返回file结构
 	retval = PTR_ERR(file);
 	if (IS_ERR(file))
 		goto out_unmark;
 
-	sched_exec();
+	sched_exec();	// 在多核计算机中找到最小负载的CPU，用来执行该二进制文件
 
 	bprm->file = file;
 	if (!filename) {
@@ -1788,24 +1788,24 @@ static int __do_execve_file(int fd, struct filename *filename,
 	}
 	bprm->interp = bprm->filename;
 
-	retval = bprm_mm_init(bprm);
+	retval = bprm_mm_init(bprm);	// 分配新进程的内存空间mm_struct,并初始化
 	if (retval)
 		goto out_unmark;
 
-	retval = prepare_arg_pages(bprm, argv, envp);
+	retval = prepare_arg_pages(bprm, argv, envp);	// 准备参数和环境变量,赋给bprm结构体
 	if (retval < 0)
 		goto out;
 
-	retval = prepare_binprm(bprm);
+	retval = prepare_binprm(bprm);	// 设置进程的授权，并将可执行文件的内容读取到bprm的buf缓存中
 	if (retval < 0)
 		goto out;
 
-	retval = copy_strings_kernel(1, &bprm->filename, bprm);
+	retval = copy_strings_kernel(1, &bprm->filename, bprm);	// 将用户空间的数据拷贝到内核空间
 	if (retval < 0)
 		goto out;
 
 	bprm->exec = bprm->p;
-	retval = copy_strings(bprm->envc, envp, bprm);
+	retval = copy_strings(bprm->envc, envp, bprm);	// 将用户空间的数据拷贝到内核空间
 	if (retval < 0)
 		goto out;
 
@@ -1815,7 +1815,7 @@ static int __do_execve_file(int fd, struct filename *filename,
 
 	would_dump(bprm, bprm->file);
 
-	retval = exec_binprm(bprm);
+	retval = exec_binprm(bprm);	// 开始执行新进程
 	if (retval < 0)
 		goto out;
 
